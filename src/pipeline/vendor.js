@@ -22,7 +22,7 @@ export function vendorDir(env = process.env) {
  *
  * **要在 PATH 上直接 spawn 真解释器，不能 spawn `python.cmd` 这种包装脚本** ——
  * Node 在 Windows 上不走 shell，.cmd 一律 ENOENT（实测 status 9009）。
- * 而这台机器上 `python` 恰恰就是 C:\Users\a\.dsh\bin\python.cmd 这种 shim，
+ * 而有些机器上 `python` 恰恰就是 `C:\...\bin\python.cmd` 这种 shim，
  * 所以必须：① 先找真 .exe；② 实在只有 .cmd，就把它里面写死的 python.exe 抠出来。
  */
 export function pythonCandidates(env = process.env) {

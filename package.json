@@ -38,7 +38,11 @@
     "cordis.patch.yml",
     "locale/*.json",
     "icon.svg",
-    "README.md"
+    "bin",
+    "scripts",
+    "vendor/afp",
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "doctor": "node bin/doctor.mjs",
