@@ -1,0 +1,52 @@
+{
+  "name": "dsh-song-id",
+  "version": "0.1.0",
+  "description": "Identify the song in a video link (Bilibili / YouTube / anything yt-dlp handles) — dual-engine recognition with Shazam (shazamio) and NetEase Cloud Music.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/A-2788553793/dsh-song-id.git"
+  },
+  "homepage": "https://github.com/A-2788553793/dsh-song-id#readme",
+  "bugs": {
+    "url": "https://github.com/A-2788553793/dsh-song-id/issues"
+  },
+  "author": "lazy",
+  "type": "module",
+  "license": "MIT",
+  "keywords": [
+    "deepseek",
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "shazam",
+    "song",
+    "music",
+    "audio",
+    "bilibili",
+    "yt-dlp"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "exports": {
+    ".": "./src/index.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "src",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md"
+  ],
+  "scripts": {
+    "doctor": "node bin/doctor.mjs",
+    "test": "node --test test/"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

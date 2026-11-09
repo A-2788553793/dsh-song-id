@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Song ID",
+    "description": "Give it a video link (Bilibili / YouTube / anything yt-dlp handles) and it tells you what song is playing — title, artist, album, cover."
+  }
+}
