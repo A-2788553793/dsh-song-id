@@ -36,7 +36,8 @@ test('apply 注册 song_identify，并返回 disposer', async () => {
   assert.equal(tool.parameters.cookies.type, 'string');
   assert.deepEqual(Object.keys(tool.output.schema.properties), ['text']);
   assert.equal(tool.output.schema.properties.text.type, 'string');
-  assert.equal(tool.output.schema.properties.text.required, true);
+  assert.deepEqual(tool.output.schema.required, ['text']);
+  assert.equal(tool.output.schema.properties.text.required, undefined);
   assert.equal(typeof tool.output.render, 'function');
   assert.deepEqual(tool.output.render({}, { text: 'hi' }), [{ type: 'text', text: 'hi' }]);
   assert.equal(typeof tool.timeoutMs, 'number');

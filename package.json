@@ -11,6 +11,7 @@
     "url": "https://github.com/A-2788553793/dsh-song-id/issues"
   },
   "author": "lazy",
+  "main": "./src/index.js",
   "type": "module",
   "license": "MIT",
   "keywords": [

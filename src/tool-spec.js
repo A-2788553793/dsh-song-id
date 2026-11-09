@@ -56,8 +56,9 @@ export function songIdentifySpec() {
       schema: {
         type: 'object',
         additionalProperties: false,
+        required: ['text'],
         properties: {
-          text: { type: 'string', required: true, description: 'Markdown: song, artist, album, cover, timestamp.' },
+          text: { type: 'string', description: 'Markdown: song, artist, album, cover, timestamp.' },
         },
       },
       render(args, value) {

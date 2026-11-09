@@ -24,6 +24,14 @@ export async function apply(ctx) {
     try {
       ctx?.logger?.error?.(`[dsh-song-id] failed to load: ${e?.stack ?? e}`);
     } catch { /* 连日志都写不了就算了 */ }
+    try {
+      const fs = await import('node:fs');
+      const path = await import('node:path');
+      const base = process.env.DSH_HOME || path.join(process.env.USERPROFILE || process.env.HOME || '.', '.dsh');
+      const logDir = path.join(base, 'storages', 'song-id');
+      fs.mkdirSync(logDir, { recursive: true });
+      fs.writeFileSync(path.join(logDir, 'load-error.log'), new Date().toISOString() + '\n' + (e?.stack ?? String(e)) + '\n');
+    } catch { /* 记不下来也只能算了 */ }
     if (process.env.DSH_SONGID_DEBUG) throw e;
     return () => {};
   }
