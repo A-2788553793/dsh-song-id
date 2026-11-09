@@ -1,6 +1,6 @@
 {
   "name": "dsh-song-id",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Identify the song in a video link (Bilibili / YouTube / anything yt-dlp handles) — dual-engine recognition with Shazam (shazamio) and NetEase Cloud Music.",
   "repository": {
     "type": "git",
