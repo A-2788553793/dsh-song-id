@@ -24,6 +24,7 @@ import {
 } from './media.js';
 import { matchNetease } from './netease.js';
 import { recognizeClips, extractSong } from './shazam.js';
+import { normalizeEngine } from './settings.js';
 import { normalizeUrl, cacheKey } from './url.js';
 import { ensureVendor, resolvePython } from './vendor.js';
 import { requireFfmpeg, requireYtdlp } from './ytdlp.js';
@@ -86,7 +87,8 @@ function titleKey(title) {
 }
 
 /**
- * @param {{url:string, at?:number, clips?:number, clipSeconds?:number, cookies?:string, env?:object, log?:Function, noCache?:boolean}} options
+ * @param {{url:string, at?:number, clips?:number, clipSeconds?:number, cookies?:string,
+ *   engine?:'auto'|'shazam'|'netease', env?:object, log?:Function, noCache?:boolean}} options
  */
 export async function identify(options = {}) {
   const env = options.env ?? process.env;
@@ -94,12 +96,15 @@ export async function identify(options = {}) {
   const started = Date.now();
 
   const url = normalizeUrl(options.url);
+  // 引擎偏好来自设置页（「听歌识曲 → 选择引擎」）；auto = 两家都跑。
+  const engine = normalizeEngine(options.engine);
   const clips = clampInt(options.clips, 3, 1, 5);
   const clipSeconds = clampInt(options.clipSeconds, 12, 5, 30);
   const at = Number.isFinite(Number(options.at)) ? Math.max(0, Number(options.at)) : null;
   const cookies = options.cookies || env.DSH_VIDEO_COOKIES || null;
 
-  const key = `${cacheKey(url)}|at=${at ?? ''}|n=${clips}|s=${clipSeconds}`;
+  // 引擎进了缓存键：同一时间点换个引擎问，答案可能完全不同，不能拿旧结果糊弄
+  const key = `${cacheKey(url)}|at=${at ?? ''}|n=${clips}|s=${clipSeconds}|e=${engine}`;
   if (!options.noCache) {
     const cached = cache.get(key, { file: cache.cacheFile(env) });
     if (cached) return { ...cached, cached: true, elapsedMs: Date.now() - started };
@@ -173,7 +178,10 @@ export async function identify(options = {}) {
     // ── 一轮识别 ────────────────────────────────────────────────────────
     const tried = [];
     const allHits = [];
-    const python = await resolvePython(env);
+    // 两家的前置不一样：只要网易云时不必装 shazamio（首次安装要下 21MB）；只要 Shazam 时不必起网易云的指纹。
+    const wantShazam = engine !== 'netease';
+    const wantNetease = engine !== 'shazam';
+    const python = wantShazam ? await resolvePython(env) : null;
     let vendor = null;
 
     const runRound = async (label, plan, { retryMiss = false } = {}) => {
@@ -184,17 +192,24 @@ export async function identify(options = {}) {
         } catch { /* 某一段切不出来不该毁掉整轮 */ }
       }
       if (!made.length) return null;
-      if (!vendor) vendor = await ensureVendor({ python, log });
+      if (wantShazam && !vendor) vendor = await ensureVendor({ python, log });
       log(label);
       const clipPaths = made.map((m) => m.path);
 
       // 两个引擎并行：Shazam（Apple 曲库）与网易云（用户可上传曲库，DJ 版/翻唱/AI 版多）。
       // 任何一个挂掉都不该拖垮另一个，所以各自 catch 成空结果。
+      // 设置页选了单引擎时，另一个直接给空结果 —— 后续合并逻辑不用改。
+      const emptyShazam = { ok: true, hit: null, hits: [], tried: [] };
+      const emptyNetease = { ok: true, results: [], tried: [] };
       const [shazamSide, neteaseSide] = await Promise.all([
-        recognizeClips({ python, vendor: vendor.dir, clips: clipPaths, retryMiss })
-          .then((r) => ({ ...r, ok: true }), (e) => ({ ok: false, error: e, hit: null, hits: [], tried: [] })),
-        matchNetease({ ffmpeg, clips: clipPaths, workDir: work, log })
-          .then((r) => ({ ...r, ok: true }), (e) => ({ ok: false, error: e, results: [], tried: [] })),
+        wantShazam
+          ? recognizeClips({ python, vendor: vendor.dir, clips: clipPaths, retryMiss })
+            .then((r) => ({ ...r, ok: true }), (e) => ({ ok: false, error: e, hit: null, hits: [], tried: [] }))
+          : Promise.resolve(emptyShazam),
+        wantNetease
+          ? matchNetease({ ffmpeg, clips: clipPaths, workDir: work, log })
+            .then((r) => ({ ...r, ok: true }), (e) => ({ ok: false, error: e, results: [], tried: [] }))
+          : Promise.resolve(emptyNetease),
       ]);
 
       // 按片段下标归集两家的命中；同一片段上 Shazam 的元数据更全，优先
@@ -313,8 +328,8 @@ export async function identify(options = {}) {
       video: { title: info.title, duration, id: info.id, url: info.webpageUrl, uploader: info.uploader },
       points,
       clipSeconds,
-      engines: ['shazam', 'netease'],
-      engine: 'shazam',
+      engines: [wantShazam ? 'shazam' : null, wantNetease ? 'netease' : null].filter(Boolean),
+      engine: wantShazam ? 'shazam' : 'netease',
       elapsedMs: Date.now() - started,
     };
 

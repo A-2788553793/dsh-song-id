@@ -15,6 +15,7 @@
 
 - [安装](#安装)
 - [用法](#用法)
+- [引擎设置](#引擎设置)
 - [工作原理](#工作原理)
 - [目录结构](#目录结构)
 - [依赖与环境变量](#依赖与环境变量)
@@ -183,6 +184,23 @@ node scripts/smoke.mjs "https://www.bilibili.com/video/BVxxxxxxxxxx" --fresh  # 
 
 ---
 
+## 引擎设置
+
+设置页里多了一项「听歌识曲」，里面是标题为「选择引擎」的单选：
+
+| 选项 | 说明 |
+| --- | --- |
+| 自动（默认） | 两个引擎都跑：Shazam 先认，认不出再用网易云补；DJ / 变调视频会自动换几个调门再试 |
+| Shazam | 只问 Shazam（Apple Music 曲库），更适合原版歌曲 |
+| 网易云 | 只问网易云（曲库里有大量用户上传的 DJ 版 / 翻唱 / AI 版），更适合 DJ、变调 |
+
+- 点一下立刻生效，**不用重启 DSH** —— 每次识曲都会现读偏好。
+- 偏好存在 `$DSH_HOME/storages/song-id/settings.json`，只有一个字段：`{"engine": "auto"}`。
+- 只影响**之后**的识别：已经认过的视频仍走 7 天缓存（换引擎也不复用旧缓存，缓存键里带了引擎）。
+- 选单引擎时，输出里会注明「设置页里固定只用这一个引擎」，也不会再提「另一家没认到」。
+
+---
+
 ## 工作原理
 
 ### 总流程
@@ -253,7 +271,7 @@ node scripts/smoke.mjs "https://www.bilibili.com/video/BVxxxxxxxxxx" --fresh  # 
 
 ### 缓存
 
-`$DSH_HOME/storages/song-id/cache.json`，按「视频 + 采样参数」为键，TTL 7 天，最多 500 条。
+`$DSH_HOME/storages/song-id/cache.json`，按「视频 + 采样参数 + 引擎」为键，TTL 7 天，最多 500 条。
 命中过缓存的输出会多一行「来源：缓存（7 天内问过同一条视频）」。删掉这个文件即清空。
 **没认出来的不缓存** —— 下次换个时间点可能就中了。
 
@@ -265,11 +283,12 @@ node scripts/smoke.mjs "https://www.bilibili.com/video/BVxxxxxxxxxx" --fresh  # 
 
 ```
 dsh-song-id/
-├── package.json            # dsh.bundle.patch 指向 cordis.patch.yml
+├── package.json            # dsh.bundle.patch 指向 cordis.patch.yml；dsh.client 指向 client.js
 ├── cordis.patch.yml        # 往 loader 里 insert 一个 dsh-song-id 条目
+├── client.js               # 客户端半边：设置页里的「听歌识曲 → 选择引擎」
 ├── icon.svg  locale/{zh,en}.json
 ├── src/
-│   ├── index.js            # 插件入口：只做 ctx.tools.register(song_identify)
+│   ├── index.js            # 插件入口：注册 song_identify + 设置页读写端点
 │   ├── tool-spec.js        # 工具契约：参数 / 输出 schema / timeout
 │   ├── format.js           # 结果 → Markdown
 │   └── pipeline/
@@ -280,6 +299,7 @@ dsh-song-id/
 │       ├── shazam.js       # 调 recognize.py，解析 MARK 行
 │       ├── recognize.py    # asyncio + shazamio，并发识别
 │       ├── netease.js      # 网易云：PCM → wasm 指纹 → audio/match
+│       ├── settings.js     # 引擎偏好（设置页写的那个文件）
 │       ├── vendor.js       # 找 python、懒装 shazamio 到 vendor/py
 │       ├── cache.js        # 7 天缓存
 │       └── identify.js     # 主流程：三轮识别、双引擎合并

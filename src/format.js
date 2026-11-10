@@ -66,11 +66,13 @@ export function formatResult(result) {
   if (song.label) lines.push(`- 厂牌：${song.label}`);
   if (song.cover) lines.push(`- 封面：${song.cover}`);
   if (song.shazamUrl) lines.push(`- Shazam：${song.shazamUrl}`);
+  const engineCount = Array.isArray(result.engines) ? result.engines.length : 2;
+  const fixedEngineNote = engineCount === 1 ? '（设置页里固定只用这一个引擎）' : '';
   if (song.engine === 'netease') {
-    lines.push('- 引擎：网易云音乐（曲库里这一版是用户上传的 DJ 版/翻唱，跟原唱可能不同）');
+    lines.push(`- 引擎：网易云音乐（曲库里这一版是用户上传的 DJ 版/翻唱，跟原唱可能不同）${fixedEngineNote}`);
     if (song.url) lines.push(`- 网易云：${song.url}`);
   } else {
-    lines.push('- 引擎：Shazam（Apple Music 曲库）');
+    lines.push(`- 引擎：Shazam（Apple Music 曲库）${fixedEngineNote}`);
   }
   const at = result.playedAt !== null && result.playedAt !== undefined
     ? clock(result.playedAt)
@@ -92,7 +94,9 @@ export function formatResult(result) {
   }
   const titleEngine = song.engine ?? 'shazam';
   const agreed = enginesOf.get(`${song.title || ''}|${song.artist || ''}`)?.size > 1;
-  if (!agreed && titleEngine === 'netease' && matches.length) {
+  // 只有一个引擎在跑时（设置页固定了引擎），"另一家没认到"是理所当然的，别当噪音提醒
+  const dualEngine = engineCount > 1;
+  if (dualEngine && !agreed && titleEngine === 'netease' && matches.length) {
     lines.push('- 存疑：只有网易云认出来，Shazam 没认到同一首。串烧/翻唱视频里这是常态，建议对照着看一下');
   }
   if (matches.length > 1) {
